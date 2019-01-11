@@ -1,0 +1,13 @@
+---
+
+# postgres password file name
+postgresql_nagios_passfile: "{{ postgresql_passfile|default('.pgpass', true) }}"
+
+# files to be copied to remote host
+postgresql_nagios_templates_to_copy:
+  - { file: chk_postgres_wr.j2, dest: '{{ postgresql_scripts_directory }}/chk_postgres_wr', owner: '{{ postgresql_user }}', group: '{{ postgresql_group }}', mode: '0750' }
+
+postgresql_nagios_files_to_copy:
+  - { file: check_postgres.pl, dest: '{{ postgresql_scripts_directory }}/check_postgres.pl', owner: '{{ postgresql_user }}', group: '{{ postgresql_group }}', mode: '0750' }
+  - { file: check_postgres_backup_to_Networker.sh, dest: '{{ postgresql_scripts_directory }}/check_postgres_backup_to_Networker.sh', owner: '{{ postgresql_user }}', group: '{{ postgresql_group }}', mode: '0750' }
+

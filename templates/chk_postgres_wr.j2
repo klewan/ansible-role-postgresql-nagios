@@ -1,0 +1,91 @@
+#!/bin/sh
+# File: chk_postgres_wr
+#
+# This script is a simple wrapper for postgres related checks
+#
+# History:
+#
+# Date       Author       Comments
+# ---------- ------------ ----------------------------------------------
+# 10/10/2017 KLewandowski Created
+# ----------------------------------------------------------------------
+#
+
+if [ $# -lt 2 ]
+then
+  echo "SYNTAX : $0 cluster_name action <other check-postgres.pl options>"
+  exit 1
+fi
+
+CLUSTER_DB_NAME=$1
+ACTION=$2
+shift 2
+
+DBNAME=""
+CLUSTER_NAME=${CLUSTER_DB_NAME%%\/*}
+if [ "$CLUSTER_NAME" != "$CLUSTER_DB_NAME" ]
+then
+  DBNAME=${CLUSTER_DB_NAME##*\/}
+  DBNAME="-db $DBNAME"
+fi
+
+PGTAB=/etc/pgtab
+CHECK_POSTGRES_SCRIPT_DIR={{ postgresql_scripts_directory }}
+
+line=$(grep "^${CLUSTER_NAME}:" $PGTAB)
+
+if [ ! -n "$line" ]
+then
+  echo "$CLUSTER_NAME not found in $PGTAB file"
+  exit 1
+fi
+
+unset PGDATABASE
+export PGBINDIR=`echo $line |cut -d: -f2`/bin
+export PGDATA=`echo $line |cut -d: -f3`
+export PGPORT=`echo $line |cut -d: -f4`
+export PGPASSFILE=$PGDATA/.pgpass
+export PSQLRC=/tmp/dummyrc
+
+POSTGRES_USER=$(ls -ld $PGBINDIR | awk '{print $3}')
+POSTGRES_HOME=$(grep "^${POSTGRES_USER}:" /etc/passwd | cut -d: -f6)
+
+#
+# check $CLUSTER_NAME connection
+#
+$CHECK_POSTGRES_SCRIPT_DIR/check_postgres.pl --output=nagios -u nagios -H $(hostname -s) -p $PGPORT --showperf=0 --action connection -db postgres >/dev/null 2>&1
+CLUSTER_CONNECTION_RC=$?
+
+case $ACTION in
+  backup)
+          $CHECK_POSTGRES_SCRIPT_DIR/check_postgres_backup.sh $CLUSTER_NAME $@
+          ;;
+
+  connection)
+          if [ "$DBNAME" != "" ] && [ $CLUSTER_CONNECTION_RC -ne 0 ]; then
+            echo "INFO: Instance $CLUSTER_NAME is down. Skipping this check.."
+            exit 0
+          fi
+          $CHECK_POSTGRES_SCRIPT_DIR/check_postgres.pl --output=nagios -u nagios -H $(hostname -s) -p $PGPORT --showperf=0 --action $ACTION $DBNAME $@
+          ;;
+
+  *)
+          if [ $CLUSTER_CONNECTION_RC -ne 0 ]; then
+            echo "INFO: Instance $CLUSTER_NAME is down. Skipping this check.."
+            exit 0
+          fi
+
+          if [ "$DBNAME" != "" ]; then
+            $CHECK_POSTGRES_SCRIPT_DIR/check_postgres.pl --output=nagios -u nagios -H $(hostname -s) -p $PGPORT --showperf=0 --action connection $DBNAME >/dev/null 2>&1
+            if [ $? -ne 0 ]; then
+              echo "INFO: Cannot connect to $DBNAME (instance $CLUSTER_NAME). Skipping this check.."
+              exit 0
+            fi
+          fi
+
+          $CHECK_POSTGRES_SCRIPT_DIR/check_postgres.pl --output=nagios -u nagios -H $(hostname -s) -p $PGPORT --showperf=0 --action $ACTION $DBNAME $@
+          ;;
+esac
+
+exit $?
+

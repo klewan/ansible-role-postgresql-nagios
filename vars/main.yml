@@ -1,0 +1,13 @@
+---
+
+postgresql_nagios_pgdata_item: "{{ item.pgdata | default( postgresql_datavg_mountpoint_prefix + '/' + item.name + '/instance' , true) }}"
+postgresql_nagios_pgdata_item0: "{{ item.0.pgdata | default( postgresql_datavg_mountpoint_prefix + '/' + item.0.name + '/instance' , true) }}"
+postgresql_nagios_pgdata_results_item: "{{ item.item.pgdata | default( postgresql_datavg_mountpoint_prefix + '/' + item.item.name + '/instance' , true) }}"
+postgresql_nagios_pgdata_results_item0: "{{ item.0.item.pgdata | default( postgresql_datavg_mountpoint_prefix + '/' + item.0.item.name + '/instance' , true) }}"
+
+
+postgresql_nagios_pghome_item: "{{ item.pghome | default( postgresql_pghomes_directory + '/' + postgresql_pghomes_binary_prefix + 'postgresql-' + item.version , true) }}"
+postgresql_nagios_pghome_item0: "{{ item.0.pghome | default( postgresql_pghomes_directory + '/' + postgresql_pghomes_binary_prefix + 'postgresql-' + item.0.version , true) }}"
+postgresql_nagios_pghome_results_item: "{{ item.item.pghome | default( postgresql_pghomes_directory + '/' + postgresql_pghomes_binary_prefix + 'postgresql-' + item.item.version , true) }}"
+postgresql_nagios_pghome_results_item0: "{{ item.0.item.pghome | default( postgresql_pghomes_directory + '/' + postgresql_pghomes_binary_prefix + 'postgresql-' + item.0.item.version , true) }}"
+
